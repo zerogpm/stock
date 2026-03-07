@@ -39,6 +39,16 @@ export async function getStockData(symbol) {
   };
 }
 
+export async function searchSymbols(query) {
+  const result = await yahooFinance.search(query);
+  return (result.quotes || []).slice(0, 5).map((q) => ({
+    symbol: q.symbol,
+    name: q.shortname || q.longname || '',
+    exchange: q.exchange || '',
+    type: q.quoteType || '',
+  }));
+}
+
 export async function getNewsForSymbol(symbol) {
   const result = await yahooFinance.search(symbol, { newsCount: 10 });
   return (result.news || []).map((item) => ({

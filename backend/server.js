@@ -20,6 +20,7 @@ app.use(express.json());
 app.use('/api/stock', stockRouter);
 app.use('/api/news', newsRouter);
 app.use('/api/analyze', analyzeRouter);
+app.use('/api/search', (await import('./routes/search.js')).default);
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);

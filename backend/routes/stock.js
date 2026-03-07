@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getStockData } from '../services/yahooFinance.js';
+import { getStockData, searchSymbols } from '../services/yahooFinance.js';
 import { calculateFairValueSeries } from '../utils/valuation.js';
 
 const router = Router();
