@@ -22,6 +22,7 @@ function App() {
   const [recentStocks, setRecentStocks] = useState(readRecent);
   const { data, loading, error, loadStock, reset } = useStockData();
   const { theme, toggleTheme } = useTheme();
+  const [selectedRange, setSelectedRange] = useState('ALL');
 
   const handleSearch = (sym) => {
     setSymbol(sym);
@@ -87,8 +88,8 @@ function App() {
             </h1>
           </header>
           <SearchBar onSearch={handleSearch} />
-          <StockHeader data={data.stock} />
-          <ValuationChart chartData={data.chart} theme={theme} />
+          <StockHeader data={data.stock} chartData={data.chart} selectedRange={selectedRange} />
+          <ValuationChart chartData={data.chart} theme={theme} selectedRange={selectedRange} onRangeChange={setSelectedRange} />
           <MetricsGrid data={data.stock} />
           <NewsSection news={data.news} />
           <ClaudeAnalysis symbol={symbol} />

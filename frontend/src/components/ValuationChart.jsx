@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { filterByRange } from '@/utils/dateRangeFilter';
 
 const VALUATION_SERIES = [
   { key: 'actualPrice', label: 'Actual Price', colorKey: 'actualPrice' },
@@ -25,7 +26,67 @@ const SMA_SERIES = [
   { key: 'sma200', label: '200-Day SMA', color: '#4169E1' },
 ];
 
-export default function ValuationChart({ chartData, theme }) {
+const DATE_RANGES = ['1M', '3M', '6M', 'YTD', '1Y', '2Y', '5Y', '10Y', 'ALL'];
+
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function getXAxisConfig(range, isSMA) {
+  const configs = {
+    '1M':  { fmt: 'month', monthInterval: 1,  weekInterval: 4  },
+    '3M':  { fmt: 'month', monthInterval: 1,  weekInterval: 4  },
+    '6M':  { fmt: 'month', monthInterval: 2,  weekInterval: 8  },
+    'YTD': { fmt: 'month', monthInterval: 2,  weekInterval: 8  },
+    '1Y':  { fmt: 'month', monthInterval: 2,  weekInterval: 12 },
+    '2Y':  { fmt: 'year',  monthInterval: 6,  weekInterval: 26 },
+    '5Y':  { fmt: 'year',  monthInterval: 12, weekInterval: 52 },
+    '10Y': { fmt: 'year',  monthInterval: 11, weekInterval: 51 },
+    'ALL': { fmt: 'year',  monthInterval: 11, weekInterval: 51 },
+  };
+
+  const cfg = configs[range] ?? configs['ALL'];
+  const interval = isSMA ? cfg.weekInterval : cfg.monthInterval;
+
+  const tickFormatter = cfg.fmt === 'month'
+    ? (d) => {
+        const [year, month] = d.split('-');
+        return `${MONTH_NAMES[parseInt(month, 10) - 1]} '${year.slice(2)}`;
+      }
+    : (d) => d.slice(0, 4);
+
+  return { interval, tickFormatter };
+}
+
+// Monthly data is too sparse for 1M/3M — hide those for non-weekly charts
+const SHORT_RANGES = new Set(['1M', '3M']);
+
+function DateRangeSelector({ selected, onChange, isDark, isSMA }) {
+  return (
+    <div className="flex items-center justify-center gap-0.5 my-2">
+      {DATE_RANGES.filter((r) => isSMA || !SHORT_RANGES.has(r)).map((range) => {
+        const isSelected = selected === range;
+        return (
+          <button
+            key={range}
+            onClick={() => onChange(range)}
+            className={[
+              'px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-150 cursor-pointer',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500',
+              isSelected
+                ? 'bg-violet-600 text-white shadow-sm'
+                : isDark
+                  ? 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-black/5',
+            ].join(' ')}
+          >
+            {range}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function ValuationChart({ chartData, theme, selectedRange, onRangeChange }) {
   const isSMA = chartData?.chartType === 'sma';
   const seriesConfig = isSMA ? SMA_SERIES : VALUATION_SERIES;
 
@@ -44,6 +105,34 @@ export default function ValuationChart({ chartData, theme }) {
       };
     });
   }, [chartData, isSMA]);
+
+  const filteredData = useMemo(
+    () => filterByRange(mergedData, selectedRange),
+    [mergedData, selectedRange]
+  );
+
+  const xAxisConfig = getXAxisConfig(selectedRange, isSMA);
+
+  const priceDomain = useMemo(() => {
+    if (!filteredData.length) return [0, 'auto'];
+    const priceKeys = isSMA
+      ? ['actualPrice', 'sma50', 'sma200']
+      : ['actualPrice', 'fairValueOrange', 'fairValueBlue'];
+    let min = Infinity;
+    let max = -Infinity;
+    for (const point of filteredData) {
+      for (const key of priceKeys) {
+        const v = point[key];
+        if (v != null) {
+          if (v < min) min = v;
+          if (v > max) max = v;
+        }
+      }
+    }
+    if (min === Infinity) return [0, 'auto'];
+    const padding = (max - min) * 0.1 || max * 0.05;
+    return [Math.max(0, Math.floor(min - padding)), Math.ceil(max + padding)];
+  }, [filteredData, isSMA]);
 
   const [visibleSeries, setVisibleSeries] = useState({
     actualPrice: true,
@@ -108,17 +197,18 @@ export default function ValuationChart({ chartData, theme }) {
           ))}
         </div>
         <ResponsiveContainer width="100%" height={500}>
-          <ComposedChart data={mergedData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+          <ComposedChart data={filteredData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
             <XAxis
               dataKey="date"
-              tickFormatter={(d) => d.slice(0, 4)}
-              interval={isSMA ? 51 : 11}
+              tickFormatter={xAxisConfig.tickFormatter}
+              interval={xAxisConfig.interval}
               tick={{ fontSize: 12, fill: colors.text }}
             />
             <YAxis
               yAxisId="price"
               orientation="left"
+              domain={priceDomain}
               tick={{ fontSize: 12, fill: colors.text }}
               label={{ value: 'Price ($)', angle: -90, position: 'insideLeft', offset: -5, fill: colors.text }}
             />
@@ -213,6 +303,12 @@ export default function ValuationChart({ chartData, theme }) {
             />
           </ComposedChart>
         </ResponsiveContainer>
+        <DateRangeSelector
+          selected={selectedRange}
+          onChange={onRangeChange}
+          isDark={isDark}
+          isSMA={isSMA}
+        />
       </CardContent>
     </Card>
   );

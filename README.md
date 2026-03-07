@@ -1,5 +1,7 @@
 # Stock Analysis Dashboard
 
+<a href="https://www.buymeacoffee.com/zerog" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="40"></a>
+
 Search any stock, see valuation charts, key metrics, and get AI-powered analysis from Claude.
 
 ## Before You Start
