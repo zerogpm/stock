@@ -4,7 +4,7 @@ export async function streamAnalysis(prompt, res) {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const stream = client.messages.stream({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 2048,
+    max_tokens: 3000,
     messages: [{ role: 'user', content: prompt }],
   });
 

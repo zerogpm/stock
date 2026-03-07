@@ -76,12 +76,20 @@ Based on this data, provide your analysis as a JSON object with this exact struc
   "valuation_analysis": "Paragraph comparing current price to historical P/E and fair value estimates",
   "risks": ["risk1", "risk2", "risk3"],
   "catalysts": ["catalyst1", "catalyst2"],
-  "price_target_12m": {
-    "low": number,
-    "base": number,
-    "high": number
-  },
-  "forecast_summary": "2-3 sentence 12-month outlook based on earnings trend and news sentiment"
+  "forecasts": {
+    "3m": {
+      "price_target": { "low": number, "base": number, "high": number },
+      "summary": "2-3 sentence 3-month outlook"
+    },
+    "6m": {
+      "price_target": { "low": number, "base": number, "high": number },
+      "summary": "2-3 sentence 6-month outlook"
+    },
+    "12m": {
+      "price_target": { "low": number, "base": number, "high": number },
+      "summary": "2-3 sentence 12-month outlook"
+    }
+  }
 }
 
 Return ONLY the JSON object, no markdown code fences or other text.`;
