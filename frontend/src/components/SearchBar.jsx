@@ -117,7 +117,11 @@ export default function SearchBar({ onSearch }) {
           </ul>
         )}
       </div>
-      <Button type="submit" size="lg">
+      <Button
+        type="submit"
+        size="lg"
+        className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 hover:shadow-lg hover:shadow-violet-500/25 transition-all duration-200 text-white"
+      >
         Search
       </Button>
     </form>

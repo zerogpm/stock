@@ -1,7 +1,7 @@
 import YahooFinance from 'yahoo-finance2';
 const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
-export async function getStockData(symbol) {
+export async function getStockData(symbol, { interval = '1mo' } = {}) {
   const tenYearsAgo = new Date();
   tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
 
@@ -20,7 +20,7 @@ export async function getStockData(symbol) {
     yahooFinance.chart(symbol, {
       period1: tenYearsAgo,
       period2: new Date(),
-      interval: '1mo',
+      interval,
     }),
   ]);
 

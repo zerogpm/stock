@@ -36,7 +36,8 @@ export default function ClaudeAnalysis({ symbol }) {
           <Button
             onClick={() => startAnalysis(symbol)}
             disabled={streaming}
-            className="bg-violet-600 hover:bg-violet-700"
+            size="lg"
+            className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 hover:shadow-lg hover:shadow-violet-500/25 transition-all duration-200 text-white"
           >
             {streaming ? "Analyzing..." : "Analyze Stock"}
           </Button>
