@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
+import { Star } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { filterByRange } from '@/utils/dateRangeFilter';
 
 function formatMarketCap(n) {
@@ -15,7 +17,7 @@ const RANGE_LABELS = {
   '1Y': '1Y', '2Y': '2Y', '5Y': '5Y', '10Y': '10Y', 'ALL': 'Today',
 };
 
-export default function StockHeader({ data, chartData, selectedRange }) {
+export default function StockHeader({ data, chartData, selectedRange, isInWatchlist, onToggleWatchlist }) {
   const p = data?.price || {};
   const sp = data?.summaryProfile || {};
   const currentPrice = p.regularMarketPrice;
@@ -43,10 +45,29 @@ export default function StockHeader({ data, chartData, selectedRange }) {
     <Card className="mb-5">
       <CardContent className="flex justify-between items-start pt-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {p.shortName || p.longName || 'Unknown'}{' '}
-            <span className="font-normal text-muted-foreground">({p.symbol})</span>
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground">
+              {p.shortName || p.longName || 'Unknown'}{' '}
+              <span className="font-normal text-muted-foreground">({p.symbol})</span>
+            </h1>
+            {onToggleWatchlist && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 shrink-0"
+                onClick={onToggleWatchlist}
+                aria-label={isInWatchlist ? 'Remove from watchlist' : 'Add to watchlist'}
+              >
+                <Star
+                  className={`size-4 transition-colors ${
+                    isInWatchlist
+                      ? 'fill-yellow-400 text-yellow-400'
+                      : 'text-muted-foreground hover:text-yellow-400'
+                  }`}
+                />
+              </Button>
+            )}
+          </div>
           <div className="text-xs font-medium mt-0.5">
             {p.currency === 'CAD' ? (
               <span className="text-red-400">Canadian Stock</span>
