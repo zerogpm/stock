@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from 'react';
 import {
   ComposedChart,
   Line,
@@ -11,6 +11,7 @@ import {
   ReferenceLine,
   ReferenceArea,
 } from 'recharts';
+import { HelpCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { filterByRange } from '@/utils/dateRangeFilter';
@@ -105,7 +106,7 @@ function DateRangeSelector({ selected, onChange, isDark, isSMA }) {
   );
 }
 
-export default function ValuationChart({ chartData, theme, selectedRange, onRangeChange, dividendEvents }) {
+export default forwardRef(function ValuationChart({ chartData, theme, selectedRange, onRangeChange, dividendEvents, onStartTour, onBacktestComplete }, ref) {
   const isSMA = chartData?.chartType === 'sma';
   const seriesConfig = isSMA ? SMA_SERIES : getValuationSeries(chartData?.fairPE_orange);
 
@@ -150,6 +151,17 @@ export default function ValuationChart({ chartData, theme, selectedRange, onRang
   const [backtestResult, setBacktestResult] = useState(null);
   const [backtestAmount, setBacktestAmount] = useState(10000);
   const [backtestDrip, setBacktestDrip] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    enterBacktestMode: () => {
+      setChartMode('backtest');
+      setBacktestSelection({ start: null, end: null });
+      setBacktestResult(null);
+    },
+    exitBacktestMode: () => {
+      setChartMode('zoom');
+    },
+  }));
 
   // Drag-to-zoom state
   const [zoomArea, setZoomArea] = useState({ start: null, end: null });
@@ -198,6 +210,7 @@ export default function ValuationChart({ chartData, theme, selectedRange, onRang
       if (startDate > endDate) [startDate, endDate] = [endDate, startDate];
       setBacktestSelection({ start: startDate, end: endDate });
       runBacktest(startDate, endDate, backtestAmount, backtestDrip);
+      onBacktestComplete?.();
       setZoomArea({ start: null, end: null });
       return;
     }
@@ -296,6 +309,16 @@ export default function ValuationChart({ chartData, theme, selectedRange, onRang
               {subtitle}
             </span>
           )}
+          {onStartTour && (
+            <button
+              onClick={onStartTour}
+              className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+              aria-label="Backtest feature tour"
+              title="Learn about the Backtest feature"
+            >
+              <HelpCircle className="size-4" />
+            </button>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -316,6 +339,7 @@ export default function ValuationChart({ chartData, theme, selectedRange, onRang
             </Button>
           ))}
         </div>
+        <div data-tour="chart-area">
         <ResponsiveContainer width="100%" height={500}>
           <ComposedChart
             data={displayData}
@@ -543,8 +567,9 @@ export default function ValuationChart({ chartData, theme, selectedRange, onRang
             )}
           </ComposedChart>
         </ResponsiveContainer>
+        </div>
         <div className="flex items-center justify-center gap-3">
-          <div className={[
+          <div data-tour="mode-toggle" className={[
             'flex items-center gap-0.5 rounded-lg border px-1 py-0.5',
             isDark ? 'border-slate-700 bg-slate-800/50' : 'border-slate-200 bg-slate-100/50',
           ].join(' ')}>
@@ -599,7 +624,7 @@ export default function ValuationChart({ chartData, theme, selectedRange, onRang
         </div>
 
         {chartMode === 'backtest' && !backtestResult && (
-          <div className={[
+          <div data-tour="backtest-instructions" className={[
             'mt-4 rounded-lg border-2 border-dashed p-5 text-center',
             isDark ? 'border-emerald-700/60 bg-emerald-950/30' : 'border-emerald-300 bg-emerald-50/60',
           ].join(' ')}>
@@ -610,7 +635,7 @@ export default function ValuationChart({ chartData, theme, selectedRange, onRang
               Click and drag on the chart above to select a time period
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <label className="flex items-center gap-1.5 text-sm text-foreground">
+              <label data-tour="backtest-amount" className="flex items-center gap-1.5 text-sm text-foreground">
                 <span className="text-muted-foreground">Invest $</span>
                 <input
                   type="number"
@@ -625,7 +650,7 @@ export default function ValuationChart({ chartData, theme, selectedRange, onRang
                   ].join(' ')}
                 />
               </label>
-              <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+              <label data-tour="backtest-drip" className="flex items-center gap-1.5 text-sm cursor-pointer">
                 <input
                   type="checkbox"
                   checked={backtestDrip}
@@ -663,4 +688,4 @@ export default function ValuationChart({ chartData, theme, selectedRange, onRang
       </CardContent>
     </Card>
   );
-}
+});

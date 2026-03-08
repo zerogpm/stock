@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { useStockData } from './hooks/useStockData';
 import { useTheme } from './hooks/useTheme';
@@ -12,6 +12,7 @@ import MetricsGrid from './components/MetricsGrid';
 import NewsSection from './components/NewsSection';
 import ClaudeAnalysis from './components/ClaudeAnalysis';
 import DividendHistory from './components/DividendHistory';
+import { useBacktestTour } from './hooks/useBacktestTour';
 
 function readRecent() {
   try { return JSON.parse(localStorage.getItem('recentStocks')) || []; }
@@ -24,6 +25,17 @@ function App() {
   const { data, loading, error, loadStock, reset } = useStockData();
   const { theme, toggleTheme } = useTheme();
   const [selectedRange, setSelectedRange] = useState('ALL');
+  const chartRef = useRef(null);
+  const { startTour, handleBacktestComplete, isCompleted: tourCompleted } = useBacktestTour(chartRef);
+  const tourTriggered = useRef(false);
+
+  useEffect(() => {
+    if (data && !tourCompleted && !tourTriggered.current) {
+      tourTriggered.current = true;
+      const timer = setTimeout(startTour, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [data, tourCompleted, startTour]);
 
   const handleSearch = (sym) => {
     setSymbol(sym);
@@ -90,7 +102,7 @@ function App() {
           </header>
           <SearchBar onSearch={handleSearch} />
           <StockHeader data={data.stock} chartData={data.chart} selectedRange={selectedRange} />
-          <ValuationChart chartData={data.chart} theme={theme} selectedRange={selectedRange} onRangeChange={setSelectedRange} dividendEvents={data.dividendEvents || []} />
+          <ValuationChart ref={chartRef} chartData={data.chart} theme={theme} selectedRange={selectedRange} onRangeChange={setSelectedRange} dividendEvents={data.dividendEvents || []} onStartTour={startTour} onBacktestComplete={handleBacktestComplete} />
           <MetricsGrid data={data.stock} />
           <DividendHistory dividendInfo={data.dividendInfo} />
           <NewsSection news={data.news} />

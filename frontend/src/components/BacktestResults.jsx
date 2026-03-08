@@ -18,7 +18,7 @@ export default function BacktestResults({ result, investmentAmount, onAmountChan
   const returnColor = isPositive ? 'text-green-500' : 'text-red-500';
 
   return (
-    <div className={[
+    <div data-tour="backtest-results" className={[
       'mt-4 rounded-lg border p-4',
       isDark ? 'border-emerald-800/40 bg-emerald-950/20' : 'border-emerald-200 bg-emerald-50/50',
     ].join(' ')}>
@@ -27,6 +27,7 @@ export default function BacktestResults({ result, investmentAmount, onAmountChan
           Investment Calculator: {result.startDate} to {result.endDate}
         </h3>
         <button
+          data-tour="backtest-clear"
           onClick={onClear}
           className={[
             'px-3 py-1 rounded-md text-sm font-semibold cursor-pointer transition-colors border',

@@ -29,3 +29,96 @@
     @apply font-sans;
   }
 }
+
+/* driver.js tour overrides — force overlay visibility */
+svg.driver-overlay {
+  display: block !important;
+  visibility: visible !important;
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 10000 !important;
+  border: none !important;
+  outline: none !important;
+  fill-rule: evenodd !important;
+}
+
+svg.driver-overlay > path {
+  border: none !important;
+  outline: none !important;
+}
+
+.driver-popover.backtest-tour-popover {
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: 'Geist Variable', sans-serif;
+  box-shadow: 0 10px 25px -5px oklch(0 0 0 / 15%);
+  max-width: 340px;
+}
+
+.driver-popover.backtest-tour-popover .driver-popover-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.driver-popover.backtest-tour-popover .driver-popover-description {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+
+.driver-popover.backtest-tour-popover .driver-popover-progress-text {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.driver-popover.backtest-tour-popover .driver-popover-next-btn,
+.driver-popover.backtest-tour-popover .driver-popover-close-btn[aria-label="done"] {
+  background-color: oklch(0.541 0.281 293);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.3rem 0.85rem;
+  text-shadow: none;
+}
+
+.driver-popover.backtest-tour-popover .driver-popover-next-btn:hover {
+  background-color: oklch(0.49 0.27 293);
+}
+
+.driver-popover.backtest-tour-popover .driver-popover-prev-btn {
+  background-color: transparent;
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.3rem 0.85rem;
+  text-shadow: none;
+}
+
+.driver-popover.backtest-tour-popover .driver-popover-prev-btn:hover {
+  color: var(--foreground);
+}
+
+.driver-popover.backtest-tour-popover .driver-popover-arrow-side-top {
+  border-bottom-color: var(--card);
+}
+
+.driver-popover.backtest-tour-popover .driver-popover-arrow-side-bottom {
+  border-top-color: var(--card);
+}
+
+.driver-popover.backtest-tour-popover .driver-popover-arrow-side-left {
+  border-right-color: var(--card);
+}
+
+.driver-popover.backtest-tour-popover .driver-popover-arrow-side-right {
+  border-left-color: var(--card);
+}
