@@ -10,7 +10,6 @@ describe('valuation 10-year coverage (integration)', () => {
     ]);
 
     const result = calculateFairValueSeries({
-      incomeStatements: data.incomeStatementHistory?.incomeStatementHistory || [],
       historicalPrices: data.historicalPrices,
       sharesOutstanding: data.defaultKeyStatistics?.sharesOutstanding || null,
       forwardEPS: data.defaultKeyStatistics?.forwardEps ?? null,

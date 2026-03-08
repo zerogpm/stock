@@ -87,8 +87,6 @@ router.get('/:symbol', async (req, res) => {
         historicalPrices: data.historicalPrices,
       });
     } else {
-      const incomeStatements =
-        data.incomeStatementHistory?.incomeStatementHistory || [];
       const sharesOutstanding =
         data.defaultKeyStatistics?.sharesOutstanding || null;
       const forwardEPS =
@@ -114,7 +112,6 @@ router.get('/:symbol', async (req, res) => {
 
       chart = {
         ...calculateFairValueSeries({
-          incomeStatements,
           historicalPrices: data.historicalPrices,
           sharesOutstanding,
           forwardEPS: effectiveForwardEPS,

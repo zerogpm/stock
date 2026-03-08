@@ -15,7 +15,6 @@ export const SECTOR_PE_BASELINES = {
 export const DEFAULT_SECTOR_PE = 15;
 
 export function calculateFairValueSeries({
-  incomeStatements,
   historicalPrices,
   sharesOutstanding,
   forwardEPS,
@@ -24,26 +23,15 @@ export function calculateFairValueSeries({
   sector,
   sectorPEOverride,
 }) {
-  // Step 1: Extract annual EPS — prefer fundamentalsTimeSeries (10yr) over incomeStatementHistory (~4yr)
-  const epsFromFundamentals = (fundamentals || [])
+  // Step 1: Extract annual EPS from fundamentalsTimeSeries
+  const annualEPS = (fundamentals || [])
     .map((f) => {
       const year = new Date(f.date).getFullYear();
       const eps = f.dilutedEPS ?? f.basicEPS ??
         (f.netIncome && f.dilutedAverageShares ? f.netIncome / f.dilutedAverageShares : null);
       return { year, eps };
     })
-    .filter((e) => e.eps != null && e.eps > 0);
-
-  const epsFromStatements = (incomeStatements || [])
-    .map((stmt) => {
-      const year = new Date(stmt.endDate).getFullYear();
-      const eps =
-        stmt.dilutedEPS ?? (stmt.netIncome && sharesOutstanding ? stmt.netIncome / sharesOutstanding : null);
-      return { year, eps };
-    })
-    .filter((e) => e.eps != null && e.eps > 0);
-
-  const annualEPS = (epsFromFundamentals.length >= epsFromStatements.length ? epsFromFundamentals : epsFromStatements)
+    .filter((e) => e.eps != null && e.eps > 0)
     .sort((a, b) => a.year - b.year);
 
   // Step 2: Compute average stock price per fiscal year

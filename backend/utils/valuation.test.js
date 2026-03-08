@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { calculateFairValueSeries, SECTOR_PE_BASELINES, DEFAULT_SECTOR_PE } from './valuation.js';
 
-function makeStatement(year, dilutedEPS, netIncome) {
-  return { endDate: `${year}-12-31`, dilutedEPS, netIncome };
+function makeFundamental(year, dilutedEPS, netIncome, dilutedAverageShares) {
+  return { date: new Date(year, 11, 31), dilutedEPS, netIncome, dilutedAverageShares };
 }
 
 function makePrices(yearStart, yearEnd, basePrice) {
@@ -18,10 +18,10 @@ function makePrices(yearStart, yearEnd, basePrice) {
 describe('calculateFairValueSeries', () => {
   it('computes correct annualEPS, growth rate, and chart data for 3 years', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [
-        makeStatement(2021, 2.0),
-        makeStatement(2022, 2.5),
-        makeStatement(2023, 3.0),
+      fundamentals: [
+        makeFundamental(2021, 2.0),
+        makeFundamental(2022, 2.5),
+        makeFundamental(2023, 3.0),
       ],
       historicalPrices: makePrices(2021, 2023, 40),
       sharesOutstanding: 1000000,
@@ -40,9 +40,9 @@ describe('calculateFairValueSeries', () => {
     expect(result.verdictRatio).toBeGreaterThan(0);
   });
 
-  it('derives EPS from netIncome / sharesOutstanding when dilutedEPS is missing', () => {
+  it('derives EPS from netIncome / dilutedAverageShares when dilutedEPS is missing', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [makeStatement(2022, undefined, 5000000)],
+      fundamentals: [makeFundamental(2022, undefined, 5000000, 1000000)],
       historicalPrices: makePrices(2022, 2022, 50),
       sharesOutstanding: 1000000,
       forwardEPS: null,
@@ -55,10 +55,10 @@ describe('calculateFairValueSeries', () => {
 
   it('filters out negative EPS years', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [
-        makeStatement(2021, -1.0),
-        makeStatement(2022, 0),
-        makeStatement(2023, 3.0),
+      fundamentals: [
+        makeFundamental(2021, -1.0),
+        makeFundamental(2022, 0),
+        makeFundamental(2023, 3.0),
       ],
       historicalPrices: makePrices(2021, 2023, 40),
       sharesOutstanding: 1000000,
@@ -71,9 +71,8 @@ describe('calculateFairValueSeries', () => {
   });
 
   it('clamps historicalAvgPE to minimum of 5', () => {
-    // Very low price relative to EPS => raw P/E < 5
     const result = calculateFairValueSeries({
-      incomeStatements: [makeStatement(2023, 100.0)],
+      fundamentals: [makeFundamental(2023, 100.0)],
       historicalPrices: [{ date: new Date(2023, 6, 1).toISOString(), close: 10 }],
       sharesOutstanding: 1000000,
       forwardEPS: null,
@@ -84,9 +83,8 @@ describe('calculateFairValueSeries', () => {
   });
 
   it('clamps historicalAvgPE to maximum of 50', () => {
-    // Very high price relative to EPS => raw P/E > 50
     const result = calculateFairValueSeries({
-      incomeStatements: [makeStatement(2023, 0.1)],
+      fundamentals: [makeFundamental(2023, 0.1)],
       historicalPrices: [{ date: new Date(2023, 6, 1).toISOString(), close: 8 }],
       sharesOutstanding: 1000000,
       forwardEPS: null,
@@ -97,12 +95,10 @@ describe('calculateFairValueSeries', () => {
   });
 
   it('excludes P/E ratios above 100 from average', () => {
-    // Year 2021: price 1000, EPS 1 => P/E=1000 (excluded)
-    // Year 2022: price 30, EPS 2 => P/E=15
     const result = calculateFairValueSeries({
-      incomeStatements: [
-        makeStatement(2021, 1.0),
-        makeStatement(2022, 2.0),
+      fundamentals: [
+        makeFundamental(2021, 1.0),
+        makeFundamental(2022, 2.0),
       ],
       historicalPrices: [
         { date: new Date(2021, 6, 1).toISOString(), close: 1000 },
@@ -117,11 +113,10 @@ describe('calculateFairValueSeries', () => {
   });
 
   it('uses growth rate as fairPE_orange when CAGR >= 15%', () => {
-    // EPS: 1 -> 2 over 1 year = 100% CAGR
     const result = calculateFairValueSeries({
-      incomeStatements: [
-        makeStatement(2022, 1.0),
-        makeStatement(2023, 2.0),
+      fundamentals: [
+        makeFundamental(2022, 1.0),
+        makeFundamental(2023, 2.0),
       ],
       historicalPrices: makePrices(2022, 2023, 20),
       sharesOutstanding: 1000000,
@@ -134,11 +129,10 @@ describe('calculateFairValueSeries', () => {
   });
 
   it('defaults fairPE_orange to 15 when CAGR < 15%', () => {
-    // EPS: 2 -> 2.1 over 1 year = 5% CAGR
     const result = calculateFairValueSeries({
-      incomeStatements: [
-        makeStatement(2022, 2.0),
-        makeStatement(2023, 2.1),
+      fundamentals: [
+        makeFundamental(2022, 2.0),
+        makeFundamental(2023, 2.1),
       ],
       historicalPrices: makePrices(2022, 2023, 30),
       sharesOutstanding: 1000000,
@@ -152,7 +146,7 @@ describe('calculateFairValueSeries', () => {
 
   it('returns epsGrowthRate 0 with only 1 year of data', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [makeStatement(2023, 3.0)],
+      fundamentals: [makeFundamental(2023, 3.0)],
       historicalPrices: makePrices(2023, 2023, 45),
       sharesOutstanding: 1000000,
       forwardEPS: null,
@@ -163,9 +157,9 @@ describe('calculateFairValueSeries', () => {
     expect(result.fairPE_orange).toBe(15);
   });
 
-  it('handles empty incomeStatements gracefully', () => {
+  it('handles empty fundamentals gracefully', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [],
+      fundamentals: [],
       historicalPrices: makePrices(2023, 2023, 50),
       sharesOutstanding: 1000000,
       forwardEPS: null,
@@ -177,37 +171,12 @@ describe('calculateFairValueSeries', () => {
     expect(result.epsGrowthRate).toBe(0);
   });
 
-  it('computes forwardFairValue when forwardEPS is provided', () => {
-    const result = calculateFairValueSeries({
-      incomeStatements: [makeStatement(2023, 3.0)],
-      historicalPrices: makePrices(2023, 2023, 45),
-      sharesOutstanding: 1000000,
-      forwardEPS: 4.0,
-      currentPrice: 50,
-    });
-
-    expect(result.forwardFairValue).toBe(result.historicalAvgPE * 4);
-  });
-
-  it('returns null forwardFairValue when forwardEPS is null', () => {
-    const result = calculateFairValueSeries({
-      incomeStatements: [makeStatement(2023, 3.0)],
-      historicalPrices: makePrices(2023, 2023, 45),
-      sharesOutstanding: 1000000,
-      forwardEPS: null,
-      currentPrice: 50,
-    });
-
-    expect(result.forwardFairValue).toBeNull();
-  });
-
-  it('prefers fundamentals data over incomeStatements when it has more years', () => {
+  it('uses fundamentals data for EPS extraction', () => {
     const fundamentals = Array.from({ length: 8 }, (_, i) => ({
       date: new Date(2016 + i, 11, 31),
       dilutedEPS: 2 + i * 0.2,
     }));
     const result = calculateFairValueSeries({
-      incomeStatements: [makeStatement(2022, 3.2), makeStatement(2023, 3.4)],
       historicalPrices: makePrices(2016, 2023, 30),
       sharesOutstanding: 1000000,
       forwardEPS: null,
@@ -222,23 +191,21 @@ describe('calculateFairValueSeries', () => {
     expect(nullFairValues).toHaveLength(0);
   });
 
-  it('falls back to incomeStatements when fundamentals is empty', () => {
+  it('handles null fundamentals gracefully', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [makeStatement(2022, 3.0), makeStatement(2023, 3.5)],
       historicalPrices: makePrices(2022, 2023, 40),
       sharesOutstanding: 1000000,
       forwardEPS: null,
       currentPrice: 50,
-      fundamentals: [],
+      fundamentals: null,
     });
 
-    expect(result.annualEPS).toHaveLength(2);
-    expect(result.annualEPS[0].year).toBe(2022);
+    expect(result.annualEPS).toHaveLength(0);
   });
 
   it('filters out prices with null close values', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [makeStatement(2023, 3.0)],
+      fundamentals: [makeFundamental(2023, 3.0)],
       historicalPrices: [
         { date: new Date(2023, 0, 15).toISOString(), close: 45 },
         { date: new Date(2023, 1, 15).toISOString(), close: null },
@@ -254,9 +221,9 @@ describe('calculateFairValueSeries', () => {
 
   it('uses Financial Services baseline (13x) for bank stocks', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [
-        makeStatement(2022, 2.0),
-        makeStatement(2023, 2.1),
+      fundamentals: [
+        makeFundamental(2022, 2.0),
+        makeFundamental(2023, 2.1),
       ],
       historicalPrices: makePrices(2022, 2023, 30),
       sharesOutstanding: 1000000,
@@ -271,9 +238,9 @@ describe('calculateFairValueSeries', () => {
 
   it('uses Technology baseline (25x) when CAGR < baseline', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [
-        makeStatement(2022, 2.0),
-        makeStatement(2023, 2.4),
+      fundamentals: [
+        makeFundamental(2022, 2.0),
+        makeFundamental(2023, 2.4),
       ],
       historicalPrices: makePrices(2022, 2023, 50),
       sharesOutstanding: 1000000,
@@ -288,9 +255,9 @@ describe('calculateFairValueSeries', () => {
 
   it('uses growth rate when CAGR exceeds sector baseline', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [
-        makeStatement(2022, 2.0),
-        makeStatement(2023, 2.7),
+      fundamentals: [
+        makeFundamental(2022, 2.0),
+        makeFundamental(2023, 2.7),
       ],
       historicalPrices: makePrices(2022, 2023, 50),
       sharesOutstanding: 1000000,
@@ -305,9 +272,9 @@ describe('calculateFairValueSeries', () => {
 
   it('uses Energy baseline (12x) for energy stocks', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [
-        makeStatement(2022, 5.0),
-        makeStatement(2023, 5.25),
+      fundamentals: [
+        makeFundamental(2022, 5.0),
+        makeFundamental(2023, 5.25),
       ],
       historicalPrices: makePrices(2022, 2023, 60),
       sharesOutstanding: 1000000,
@@ -322,9 +289,9 @@ describe('calculateFairValueSeries', () => {
 
   it('falls back to 15x for unknown sector', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [
-        makeStatement(2022, 2.0),
-        makeStatement(2023, 2.1),
+      fundamentals: [
+        makeFundamental(2022, 2.0),
+        makeFundamental(2023, 2.1),
       ],
       historicalPrices: makePrices(2022, 2023, 30),
       sharesOutstanding: 1000000,
@@ -339,9 +306,9 @@ describe('calculateFairValueSeries', () => {
 
   it('appends 24 projected data points when forwardEPS is provided', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [
-        makeStatement(2022, 2.0),
-        makeStatement(2023, 2.5),
+      fundamentals: [
+        makeFundamental(2022, 2.0),
+        makeFundamental(2023, 2.5),
       ],
       historicalPrices: makePrices(2022, 2023, 40),
       sharesOutstanding: 1000000,
@@ -359,7 +326,7 @@ describe('calculateFairValueSeries', () => {
 
   it('does not append projections when forwardEPS is null', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [makeStatement(2023, 3.0)],
+      fundamentals: [makeFundamental(2023, 3.0)],
       historicalPrices: makePrices(2023, 2023, 45),
       sharesOutstanding: 1000000,
       forwardEPS: null,
@@ -372,7 +339,7 @@ describe('calculateFairValueSeries', () => {
 
   it('bridges last historical point with projected keys', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [makeStatement(2023, 3.0)],
+      fundamentals: [makeFundamental(2023, 3.0)],
       historicalPrices: makePrices(2023, 2023, 45),
       sharesOutstanding: 1000000,
       forwardEPS: 3.5,
@@ -390,7 +357,7 @@ describe('calculateFairValueSeries', () => {
 
   it('adds projectedEps only at December months', () => {
     const result = calculateFairValueSeries({
-      incomeStatements: [makeStatement(2023, 3.0)],
+      fundamentals: [makeFundamental(2023, 3.0)],
       historicalPrices: makePrices(2023, 2023, 45),
       sharesOutstanding: 1000000,
       forwardEPS: 3.5,

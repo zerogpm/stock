@@ -126,6 +126,22 @@ const VERDICT_CONFIG = {
   },
 };
 
+function getActionSuggestionStyle(action) {
+  const styles = {
+    STRONG_BUY: "border-green-300 bg-green-50/60 text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300",
+    BUY: "border-green-300 bg-green-50/60 text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300",
+    ACCUMULATE: "border-green-300 bg-green-50/60 text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300",
+    HOLD: "border-yellow-300 bg-yellow-50/60 text-yellow-700 dark:border-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300",
+    SPECULATIVE_BUY: "border-amber-300 bg-amber-50/60 text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300",
+    REDUCE: "border-orange-300 bg-orange-50/60 text-orange-700 dark:border-orange-700 dark:bg-orange-900/20 dark:text-orange-300",
+    ROTATE_OUT: "border-orange-300 bg-orange-50/60 text-orange-700 dark:border-orange-700 dark:bg-orange-900/20 dark:text-orange-300",
+    SELL: "border-red-300 bg-red-50/60 text-red-700 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300",
+    STRONG_SELL: "border-red-300 bg-red-50/60 text-red-700 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300",
+    AVOID: "border-red-300 bg-red-50/60 text-red-700 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300",
+  };
+  return styles[action] || "text-muted-foreground";
+}
+
 function getActionExplanation(action) {
   const explanations = {
     STRONG_BUY: "Strong opportunity \u2014 the stock looks significantly undervalued right now.",
@@ -194,7 +210,7 @@ export default function ClaudeAnalysis({ symbol, assetType }) {
             </div>
 
             {analysis.action && getActionExplanation(analysis.action) && (
-              <p className="text-sm text-muted-foreground italic mb-4">
+              <p className={`text-sm italic mb-4 rounded-md border-l-4 px-3 py-2 ${getActionSuggestionStyle(analysis.action)}`}>
                 {getActionExplanation(analysis.action)}
               </p>
             )}

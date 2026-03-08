@@ -8,6 +8,8 @@ Search any stock, see valuation charts, key metrics, and get AI-powered analysis
 
 - **Search with Autocomplete** — real-time symbol suggestions with keyboard navigation as you type
 - **Recent Stocks** — quick-access history of your last 5 searches, persisted across sessions
+- **Watchlist** — star any stock to save it; appears in the sidebar for one-click access, persisted across sessions
+- **Sidebar Navigation** — collapsible sidebar with section links (Chart, Metrics, Dividends, News, AI Analysis) that highlight as you scroll; slides out as a drawer on mobile
 - **Dark / Light Theme** — one-click toggle, remembers your preference
 - **Stock Header** — current price, daily change, market cap, sector/industry, and US or Canadian stock indicator
 - **Multi-Asset Support** — specialized metrics, charts, and AI prompts for each asset type:
@@ -29,12 +31,14 @@ Search any stock, see valuation charts, key metrics, and get AI-powered analysis
   - Price forecast sliders for 3-month, 6-month, and 12-month horizons (bear / base / bull scenarios)
   - Expandable calculation breakdown table
 - **Investment Calculator (Backtest)** — drag on the chart to select a period, enter an investment amount, and see total return, annualized return, dividend income, and share count; toggle Reinvest Dividends (DRIP) to compare compounded vs cash dividend outcomes
+- **Walk-Me-Through Tour** — interactive guided tour that walks you through the Investment Calculator step by step; auto-starts on first load, restartable from the sidebar
 - **Drag-to-Zoom** — click and drag on the chart to zoom into any date range; double-click or press Reset Zoom to restore the full view
 - **Analyst Price Targets** — purple overlay band showing Wall Street consensus target range (low/mean/high) with analyst count
 - **Projected Fair Value** — forward-looking dashed lines for both sector P/E and historical average P/E, plus projected EPS bars based on forward guidance
 - **Period Price Change** — stock header dynamically shows price change for the selected date range (1M, 3M, YTD, 5Y, etc.) instead of only daily change
 - **Dividend History** — letter grade (A+ through F), consecutive increase streak, dividend CAGR, and 10-year annual history table
 - **News Feed** — three most recent headlines with publisher and relative timestamp
+- **LAN Access** — `start.sh` detects your local IP and prints a URL so you can open the app on your phone or tablet (same Wi-Fi)
 
 ## Before You Start
 
@@ -83,9 +87,10 @@ Now start it:
 $ ./start.sh
 
 Stock Analysis Dashboard started!
-  Backend:  http://localhost:3001
-  Frontend: http://localhost:5173
+  Backend:  http://192.168.1.x:3001  (PID: 12345)
+  Frontend: http://192.168.1.x:5173  (PID: 12346)
 
+Open the Frontend URL on your phone (same Wi-Fi) to test.
 Run ./stop.sh to stop both servers.
 ```
 
@@ -130,6 +135,14 @@ Stopped process 12346
 App stopped.
 ```
 
+## Restarting
+
+```
+$ ./restart.sh
+```
+
+Equivalent to `./stop.sh` then `./start.sh`.
+
 ## Troubleshooting
 
 **Nothing loads / errors in browser**
@@ -140,4 +153,4 @@ App stopped.
 
 **start.sh won't run**
 - Windows: use Git Bash, not Command Prompt or PowerShell
-- Mac/Linux: run `chmod +x start.sh stop.sh setup.sh` first
+- Mac/Linux: run `chmod +x start.sh stop.sh setup.sh restart.sh` first

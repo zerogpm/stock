@@ -12,7 +12,6 @@ export async function getStockData(symbol, { interval = '1mo' } = {}) {
         'summaryDetail',
         'financialData',
         'defaultKeyStatistics',
-        'incomeStatementHistory',
         'earningsTrend',
         'summaryProfile',
       ],
