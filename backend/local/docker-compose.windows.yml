@@ -1,0 +1,9 @@
+services:
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: stocks-dynamodb
+    ports:
+      - "8000:8000"
+    # In-memory mode for Windows - avoids volume permission issues
+    # Data will be lost when container stops; profiles are re-seeded on start
+    command: "-jar DynamoDBLocal.jar -sharedDb -inMemory"

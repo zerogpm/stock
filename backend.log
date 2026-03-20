@@ -1,0 +1,94 @@
+
+> stocks-backend@1.0.0 dev
+> node --watch server.js
+
+Backend running on http://0.0.0.0:3001
+[AUTO-PROFILE] DIS — assetType=stock, sector=Communication Services, industry=Entertainment
+[STOCK-PROFILES] getStockProfile(DIS, Entertainment) — useFallback=false
+[AUTO-PROFILE] DIS — getStockProfile returned: NULL
+[AUTO-PROFILE] DIS — ENTERING auto-generation block
+[AUTO-PROFILE] DIS — SSE headers set, sending generatingProfile event
+[AUTO-PROFILE] DIS — calling generateAndSaveProfile...
+Auto-generated industry profile: Entertainment
+Auto-generated ticker profile: DIS
+[AUTO-PROFILE] DIS — generateAndSaveProfile completed successfully
+[STOCK-PROFILES] getStockProfile(DIS, Entertainment) — useFallback=false
+[AUTO-PROFILE] DIS — re-fetched profile: HAS PROFILE
+[AUTO-PROFILE] DIS — sent profileGenerated event
+[AUTO-PROFILE] DIS — assetType=stock, sector=Communication Services, industry=Entertainment
+[STOCK-PROFILES] getStockProfile(DIS, Entertainment) — useFallback=false
+[AUTO-PROFILE] DIS — getStockProfile returned: HAS PROFILE
+[AUTO-PROFILE] DIS — SKIPPED auto-generation (stockProfile=true, assetType=stock)
+Failed running 'server.js'
+Restarting 'server.js'
+Backend running on http://0.0.0.0:3001
+Restarting 'server.js'
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:3001
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 3001
+}
+
+Node.js v22.14.0
+Failed running 'server.js'
+Restarting 'server.js'
+Restarting 'server.js'
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:3001
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 3001
+}
+
+Node.js v22.14.0
+Failed running 'server.js'
+Restarting 'server.js'
+Restarting 'server.js'
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:3001
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at node:net:2203:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 3001
+}
+
+Node.js v22.14.0
+Failed running 'server.js'
+Restarting 'server.js'
+Backend running on http://0.0.0.0:3001

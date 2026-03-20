@@ -11,6 +11,8 @@ import { isBank } from '../utils/bankClassifier.js';
 import { buildBankPrompt } from '../utils/bankPrompts.js';
 import { computeBankPriceTargets } from '../utils/bankPriceTargets.js';
 import { getStockProfile } from '../utils/stockProfiles.js';
+import { generateAndSaveProfile } from '../services/profileGenerator.js';
+import { buildPeerComparison } from '../services/peerDiscovery.js';
 
 const router = Router();
 
@@ -148,7 +150,48 @@ Return ONLY the JSON object, no markdown code fences or other text.`;
 
 // buildETFPrompt replaced by etfClassifier + etfPrompts modules
 
-function buildPrompt(stock, chart, news, priceTargets, profile) {
+function buildPeerPromptSection(pc) {
+  const { target, peers, medians } = pc;
+  const fmtVal = (v, isPct) => {
+    if (v == null) return 'N/A';
+    return isPct ? `${(v * 100).toFixed(1)}%` : v.toFixed(2);
+  };
+  const relative = (val, med, lowerIsBetter) => {
+    if (val == null || med == null) return 'N/A';
+    const diff = ((val - med) / med) * 100;
+    if (Math.abs(diff) < 5) return 'In-line';
+    if (lowerIsBetter) return diff < 0 ? 'Favorable' : 'Elevated';
+    return diff > 0 ? 'Favorable' : 'Below peers';
+  };
+
+  const metrics = [
+    { label: 'Trailing P/E', key: 'trailingPE', pct: false, lowerBetter: true },
+    { label: 'Forward P/E', key: 'forwardPE', pct: false, lowerBetter: true },
+    { label: 'Revenue Growth', key: 'revenueGrowth', pct: true, lowerBetter: false },
+    { label: 'Profit Margin', key: 'profitMargin', pct: true, lowerBetter: false },
+    { label: 'Debt/Equity', key: 'debtToEquity', pct: false, lowerBetter: true },
+    { label: 'Dividend Yield', key: 'dividendYield', pct: true, lowerBetter: false },
+  ];
+
+  const rows = metrics.map((m) =>
+    `| ${m.label} | ${fmtVal(target[m.key], m.pct)} | ${fmtVal(medians[m.key], m.pct)} | ${relative(target[m.key], medians[m.key], m.lowerBetter)} |`
+  ).join('\n');
+
+  const peerNames = peers.map((p) => `${p.symbol} (${p.name})`).join(', ');
+
+  return `
+## Peer Comparison Context
+| Metric | ${target.symbol} | Peer Median | Relative |
+|--------|------|-------------|----------|
+${rows}
+
+Peers: ${peerNames}
+
+When assessing valuation, comment on how this stock's P/E and growth metrics compare to its peer group median. If trading at a premium or discount to peers, explain whether this is justified by fundamentals.
+`;
+}
+
+function buildPrompt(stock, chart, news, priceTargets, profile, peerComparison) {
   const profileContext = profile?.promptContext || [];
   const dataOverrides = profile?.dataOverrides || null;
   const valuationNotes = profile?.valuationNotes || null;
@@ -212,6 +255,7 @@ When the VALUATION NOTE above explains that trailing metrics (P/E, EPS, GAAP mar
 ` : ''}
 ## Recent News Headlines
 ${newsSection || 'No recent news available.'}
+${peerComparison ? buildPeerPromptSection(peerComparison) : ''}
 ${priceTargets ? `
 ## Computed Price Targets (server-calculated — use these exact values)
 ### 3-Month Targets
@@ -291,7 +335,48 @@ router.post('/', async (req, res) => {
     const sector = data.summaryProfile?.sector || '';
     const industry = data.summaryProfile?.industry || '';
 
-    const stockProfile = getStockProfile(upperSymbol, industry);
+    const assetType = getAssetType({ price: data.price, summaryProfile: data.summaryProfile });
+
+    let stockProfile = await getStockProfile(upperSymbol, industry);
+
+    // Auto-generate profile for stocks that don't have one
+    if (!stockProfile && assetType === 'stock') {
+      // Set SSE headers early so we can send the generating event
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.flushHeaders();
+      res.write(`data: ${JSON.stringify({ generatingProfile: true, symbol: upperSymbol })}\n\n`);
+
+      try {
+        await generateAndSaveProfile({
+          symbol: upperSymbol,
+          sector,
+          industry,
+          shortName: data.price?.shortName || data.price?.longName || '',
+          marketCap: data.price?.marketCap ?? null,
+          trailingPE: data.summaryDetail?.trailingPE ?? null,
+          forwardPE: data.defaultKeyStatistics?.forwardPE ?? null,
+          debtToEquity: data.financialData?.debtToEquity ?? null,
+          profitMargins: data.financialData?.profitMargins ?? null,
+          revenueGrowth: data.financialData?.revenueGrowth ?? null,
+          dividendYield: data.summaryDetail?.dividendYield ?? null,
+        });
+        stockProfile = await getStockProfile(upperSymbol, industry);
+        res.write(`data: ${JSON.stringify({ profileGenerated: true })}\n\n`);
+      } catch (err) {
+        console.warn(`Auto-profile generation failed for ${upperSymbol}:`, err.message);
+        res.write(`data: ${JSON.stringify({ profileGenerated: true })}\n\n`);
+        // Continue without profile — analysis will use generic defaults
+      }
+    }
+
+    // Start peer comparison fetch in parallel (stocks only)
+    let peerComparisonPromise = null;
+    if (assetType === 'stock') {
+      peerComparisonPromise = buildPeerComparison(upperSymbol, data, stockProfile)
+        .catch((err) => { console.warn(`Peer comparison failed for ${upperSymbol}:`, err.message); return null; });
+    }
 
     const guidanceEPS = stockProfile?.dataOverrides?.forwardEPS?.range;
     const effectiveForwardEPS = guidanceEPS
@@ -318,8 +403,6 @@ router.post('/', async (req, res) => {
       fundProfile: data.fundProfile,
       topHoldings: data.topHoldings,
     };
-
-    const assetType = getAssetType({ price: data.price, summaryProfile: data.summaryProfile });
 
     let reitMetrics = null;
     if (assetType === 'reit') {
@@ -368,6 +451,12 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Await peer comparison before building prompt (needed for prompt injection)
+    let peerComparison = null;
+    if (peerComparisonPromise) {
+      peerComparison = await peerComparisonPromise;
+    }
+
     let prompt;
     let etfType = null;
     if (assetType === 'etf') {
@@ -396,14 +485,16 @@ router.post('/', async (req, res) => {
     } else if (assetType === 'bank') {
       prompt = buildBankPrompt(stock, chart, news, priceTargets);
     } else {
-      prompt = buildPrompt(stock, chart, news, priceTargets, stockProfile);
+      prompt = buildPrompt(stock, chart, news, priceTargets, stockProfile, peerComparison);
     }
 
-    // Set SSE headers
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
+    // Set SSE headers (may already be set if profile was auto-generated)
+    if (!res.headersSent) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.flushHeaders();
+    }
 
     if (priceTargets) {
       res.write(`data: ${JSON.stringify({ priceTargets })}\n\n`);
@@ -411,6 +502,10 @@ router.post('/', async (req, res) => {
 
     if (fairValueData) {
       res.write(`data: ${JSON.stringify({ fairValue: fairValueData })}\n\n`);
+    }
+
+    if (peerComparison) {
+      res.write(`data: ${JSON.stringify({ peerComparison })}\n\n`);
     }
 
     req.on('close', () => {

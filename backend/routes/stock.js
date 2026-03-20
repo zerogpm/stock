@@ -103,7 +103,7 @@ router.get('/:symbol', async (req, res) => {
 
       const sector = data.summaryProfile?.sector || '';
       const industry = data.summaryProfile?.industry || '';
-      const stockProfile = getStockProfile(symbol, industry);
+      const stockProfile = await getStockProfile(symbol, industry);
 
       const guidanceEPS = stockProfile?.dataOverrides?.forwardEPS?.range;
       const effectiveForwardEPS = guidanceEPS

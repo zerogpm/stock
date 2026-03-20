@@ -116,6 +116,7 @@
   "tickers": {
     "ABBV": {
       "industry": "Drug Manufacturers - General",
+      "peers": ["JNJ", "PFE", "MRK", "BMY"],
       "additionalContext": [
         "ABBV's trailing P/E (~97x) and 5-year historical avg P/E (~50x) are MEANINGLESS for valuation. TTM EPS (~$2.36) is temporarily depressed by the Humira biosimilar patent cliff (lost exclusivity Jan 2023) and one-time charges. Normalized P/E is ~15-20x. Do NOT use trailing P/E as a valuation anchor.",
         "Humira revenue dropped from ~$21B peak to ~$5-6B from biosimilar competition. This is a known, one-time headwind nearing the trough.",
@@ -139,6 +140,7 @@
     },
     "LMT": {
       "industry": "Aerospace & Defense",
+      "peers": ["RTX", "NOC", "GD", "BA"],
       "additionalContext": [
         "Trades at 20-25x P/E, NOT generic industrial multiples (15-18x). Premium is justified by long-term government contracts and stable cash flows.",
         "High Debt/Equity appears extreme because aggressive share buybacks reduce accounting equity. Evaluate debt using cash flow coverage (Net Debt/EBITDA, FCF/Debt), not D/E ratio.",
@@ -186,6 +188,7 @@
     },
     "NVDA": {
       "industry": "Semiconductors",
+      "peers": ["AMD", "INTC", "AVGO", "QCOM"],
       "additionalContext": [
         "AI/data center GPU demand is structurally different from traditional semiconductor cyclicality. Revenue concentration in hyperscaler customers creates both opportunity and risk.",
         "Forward P/E may be more relevant than trailing P/E given hypergrowth phase. Evaluate on PEG ratio and data center TAM penetration."
@@ -205,6 +208,7 @@
     },
     "XOM": {
       "industry": "Oil & Gas Integrated",
+      "peers": ["CVX", "COP", "EOG", "SLB"],
       "additionalContext": [
         "Pioneer Natural Resources acquisition significantly expanded Permian Basin position. Evaluate on combined production trajectory and synergy realization."
       ]
@@ -217,6 +221,7 @@
     },
     "PFE": {
       "industry": "Drug Manufacturers - General",
+      "peers": ["JNJ", "MRK", "ABBV", "BMY"],
       "additionalContext": [
         "Post-COVID revenue cliff — evaluate on base business ex-COVID products. Pipeline execution and Seagen acquisition synergies are critical to re-rating."
       ]
@@ -238,6 +243,7 @@
     },
     "T": {
       "industry": "Telecom Services",
+      "peers": ["VZ", "TMUS", "CHTR"],
       "additionalContext": [
         "Post-WarnerMedia spinoff, now a pure-play connectivity company. Evaluate on fiber subscriber growth (5M+ passings target) and wireless ARPU trends."
       ]
@@ -250,6 +256,7 @@
     },
     "MO": {
       "industry": "Tobacco",
+      "peers": ["PM", "BTI", "JAPAY"],
       "additionalContext": [
         "Marlboro brand dominance (>40% US market share) provides pricing power. NJOY acquisition for next-gen products. FDA regulatory decisions are key catalyst/risk."
       ]

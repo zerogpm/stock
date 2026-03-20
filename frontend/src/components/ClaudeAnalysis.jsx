@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ProfileDiscoveryLoader from "./ProfileDiscoveryLoader";
+import PeerComparison from "./PeerComparison";
 
 const ACTION_CONFIG = {
   STRONG_BUY: {
@@ -159,7 +161,7 @@ function getActionExplanation(action) {
 }
 
 export default function ClaudeAnalysis({ symbol, assetType }) {
-  const { analysis, streaming, error, cached, computedTargets, fairValue, startAnalysis, loadCachedAnalysis } = useClaudeStream();
+  const { analysis, streaming, error, cached, computedTargets, fairValue, generatingProfile, peerComparison, startAnalysis, loadCachedAnalysis } = useClaudeStream();
 
   useEffect(() => {
     if (symbol) loadCachedAnalysis(symbol);
@@ -193,12 +195,7 @@ export default function ClaudeAnalysis({ symbol, assetType }) {
         )}
 
         {streaming && (
-          <div className="flex flex-col items-center justify-center py-8 gap-3">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-200 border-t-violet-600" />
-            <p className="text-sm text-muted-foreground font-medium">
-              Analyzing {symbol}...
-            </p>
-          </div>
+          <ProfileDiscoveryLoader symbol={symbol} isDiscovery={generatingProfile} />
         )}
 
         {analysis && !streaming && (
@@ -309,6 +306,8 @@ export default function ClaudeAnalysis({ symbol, assetType }) {
                     {analysis.valuation_analysis}
                   </p>
                 </Section>
+
+                {peerComparison && <PeerComparison data={peerComparison} />}
 
                 <div className="grid grid-cols-2 gap-5 mb-5">
                   <Section title="Risk Flags">

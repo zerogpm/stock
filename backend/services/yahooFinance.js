@@ -100,3 +100,31 @@ export async function getNewsForSymbol(symbol) {
     publishedAt: item.providerPublishTime,
   }));
 }
+
+export async function getRecommendedPeers(symbol) {
+  try {
+    const result = await yahooFinance.recommendationsBySymbol(symbol);
+    return (result.recommendedSymbols || [])
+      .slice(0, 5)
+      .map((r) => ({ symbol: r.symbol, score: r.score }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getQuoteBatch(symbols) {
+  if (!symbols.length) return [];
+  return yahooFinance.quote(symbols);
+}
+
+export async function getFinancialData(symbol) {
+  const result = await yahooFinance.quoteSummary(symbol, {
+    modules: ['financialData'],
+  });
+  const fd = result.financialData || {};
+  return {
+    revenueGrowth: fd.revenueGrowth ?? null,
+    profitMargins: fd.profitMargins ?? null,
+    debtToEquity: fd.debtToEquity ?? null,
+  };
+}

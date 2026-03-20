@@ -29,6 +29,8 @@ export function useClaudeStream() {
   const [cached, setCachedState] = useState(false);
   const [computedTargets, setComputedTargets] = useState(null);
   const [fairValue, setFairValue] = useState(null);
+  const [generatingProfile, setGeneratingProfile] = useState(false);
+  const [peerComparison, setPeerComparison] = useState(null);
   const cancelRef = useRef(null);
   const rawTextRef = useRef('');
 
@@ -38,14 +40,17 @@ export function useClaudeStream() {
       setAnalysis(entry.analysis);
       setComputedTargets(entry.computedTargets ?? null);
       setFairValue(entry.fairValue ?? null);
+      setPeerComparison(entry.peerComparison ?? null);
       setError(null);
       setRawText('');
       setCachedState(true);
+      setGeneratingProfile(false);
       return true;
     }
     setAnalysis(null);
     setComputedTargets(null);
     setFairValue(null);
+    setPeerComparison(null);
     setCachedState(false);
     return false;
   }, []);
@@ -60,10 +65,13 @@ export function useClaudeStream() {
     setCachedState(false);
     setComputedTargets(null);
     setFairValue(null);
+    setPeerComparison(null);
+    setGeneratingProfile(false);
     rawTextRef.current = '';
 
     let targets = null;
     let fv = null;
+    let peers = null;
     cancelRef.current = streamAnalysis(
       symbol,
       (chunk) => {
@@ -72,6 +80,7 @@ export function useClaudeStream() {
       },
       () => {
         setStreaming(false);
+        setGeneratingProfile(false);
         try {
           // Strip markdown code fences if present
           let text = rawTextRef.current.trim();
@@ -80,13 +89,14 @@ export function useClaudeStream() {
           }
           const parsed = JSON.parse(text);
           setAnalysis(parsed);
-          setCached(symbol, { analysis: parsed, computedTargets: targets, fairValue: fv });
+          setCached(symbol, { analysis: parsed, computedTargets: targets, fairValue: fv, peerComparison: peers });
         } catch {
           setError('Failed to parse Claude response as JSON');
         }
       },
       (err) => {
         setStreaming(false);
+        setGeneratingProfile(false);
         setError(err.message);
       },
       (pt) => {
@@ -96,6 +106,17 @@ export function useClaudeStream() {
       (fvData) => {
         fv = fvData;
         setFairValue(fvData);
+      },
+      () => {
+        setGeneratingProfile(true);
+      },
+      () => {
+        // Keep discovery loader visible for the entire streaming session.
+        // generatingProfile resets in onDone/onError.
+      },
+      (peerData) => {
+        peers = peerData;
+        setPeerComparison(peerData);
       }
     );
   }, []);
@@ -104,5 +125,5 @@ export function useClaudeStream() {
     return () => cancelRef.current?.();
   }, []);
 
-  return { rawText, analysis, streaming, error, cached, computedTargets, fairValue, startAnalysis, loadCachedAnalysis };
+  return { rawText, analysis, streaming, error, cached, computedTargets, fairValue, generatingProfile, peerComparison, startAnalysis, loadCachedAnalysis };
 }
