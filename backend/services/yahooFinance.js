@@ -131,3 +131,31 @@ export async function getFinancialData(symbol) {
     industry: sp.industry ?? null,
   };
 }
+
+// Macro data cache (1 hour TTL)
+let macroCache = { data: null, timestamp: 0 };
+const MACRO_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+export async function getMacroData() {
+  const now = Date.now();
+  if (macroCache.data && now - macroCache.timestamp < MACRO_CACHE_TTL) {
+    return macroCache.data;
+  }
+
+  const result = await yahooFinance.quoteSummary('^TNX', {
+    modules: ['price', 'summaryDetail'],
+  });
+
+  const data = {
+    treasury10Y: result.price?.regularMarketPrice ?? null,
+    treasury10Y_50dma: result.summaryDetail?.fiftyDayAverage ?? null,
+  };
+
+  macroCache = { data, timestamp: now };
+  return data;
+}
+
+// Exposed for testing
+export function _resetMacroCache() {
+  macroCache = { data: null, timestamp: 0 };
+}

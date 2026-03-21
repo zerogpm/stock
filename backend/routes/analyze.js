@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getStockData, getNewsForSymbol, getREITFundamentals, getHistoricalEPS, getETFFundData } from '../services/yahooFinance.js';
+import { getStockData, getNewsForSymbol, getREITFundamentals, getHistoricalEPS, getETFFundData, getMacroData } from '../services/yahooFinance.js';
 import { calculateFairValueSeries } from '../utils/valuation.js';
 import { streamAnalysis } from '../services/claude.js';
 import { calculateREITMetrics } from '../utils/reitMetrics.js';
@@ -13,6 +13,7 @@ import { computeBankPriceTargets } from '../utils/bankPriceTargets.js';
 import { getStockProfile } from '../utils/stockProfiles.js';
 import { generateAndSaveProfile, isProfileStale } from '../services/profileGenerator.js';
 import { buildPeerComparison } from '../services/peerDiscovery.js';
+import { computeMacroScore } from '../utils/macroScore.js';
 import { buildPeerPromptSection } from '../utils/peerPrompt.js';
 
 const router = Router();
@@ -47,7 +48,7 @@ function getAssetType(data) {
   return 'stock';
 }
 
-function buildREITPrompt(stock, news, reitMetrics, peerComparison) {
+function buildREITPrompt(stock, news, reitMetrics, peerComparison, chart) {
   const p = stock.price || {};
   const fd = stock.financialData || {};
   const sd = stock.summaryDetail || {};
@@ -58,6 +59,14 @@ function buildREITPrompt(stock, news, reitMetrics, peerComparison) {
     .slice(0, 5)
     .map((n, i) => `${i + 1}. ${n.title} (${n.publisher})`)
     .join('\n');
+
+  // Compute valuation ratio for REIT action rules
+  const REIT_SECTOR_AVG_PFFO = 16; // sector average P/FFO for equity REITs
+  let reitValuationRatio = chart?.verdictRatio ?? null;
+  if (!reitValuationRatio && reitMetrics?.ffoPerShare && p.regularMarketPrice) {
+    const ffoFairValue = reitMetrics.ffoPerShare * REIT_SECTOR_AVG_PFFO;
+    reitValuationRatio = Math.round((p.regularMarketPrice / ffoFairValue) * 100) / 100;
+  }
 
   const hasFFO = reitMetrics?.ffo != null;
   const preamble = hasFFO
@@ -117,15 +126,33 @@ ${preamble}
 ## Recent News Headlines
 ${newsSection || 'No recent news available.'}
 ${peerComparison ? buildPeerPromptSection(peerComparison) : ''}
+${reitValuationRatio ? `
+## Fair Value Assessment
+- **Valuation Ratio:** ${reitValuationRatio}x (>1 = overvalued, based on ${chart?.verdictRatio ? 'P/E fair value' : `P/FFO vs sector avg ${REIT_SECTOR_AVG_PFFO}x`})
+` : ''}
 ---
 
-Determine an action recommendation based on: STRONG_BUY = significantly undervalued with high conviction and strong dividend sustainability; BUY = moderately undervalued or good entry point; HOLD = fair value or mixed signals; SELL = overvalued with headwinds; STRONG_SELL = significantly overvalued with high downside risk or dividend at risk.
+## Action Decision Rules (MUST follow${reitValuationRatio ? ` — Valuation Ratio is ${reitValuationRatio}x` : ''})
+${reitValuationRatio ? `- ratio > 1.3 AND no strong FFO growth or occupancy improvement catalyst → SELL or STRONG_SELL
+- ratio > 1.3 AND strong FFO growth or clear recovery thesis → HOLD is allowed, but you MUST explain what offsets the overvaluation and state the time horizon
+- ratio 1.1–1.3 → HOLD (moderately stretched)
+- ratio 0.9–1.1 → HOLD or BUY depending on dividend sustainability and catalysts (fair value zone)
+- ratio < 0.9 → BUY or STRONG_BUY (undervalued)
+- ratio < 0.7 → STRONG_BUY if FFO and occupancy support it` : `No valuation ratio available — base your action on P/FFO relative to sector peers, dividend yield attractiveness, and technical positioning.
+- STRONG_BUY = significantly undervalued with strong dividend sustainability
+- BUY = moderately undervalued or good entry point
+- HOLD = fair value or mixed signals
+- SELL = overvalued with headwinds
+- STRONG_SELL = significantly overvalued with dividend at risk`}
+
+CONFLICT RULE: If your verdict and action appear contradictory (e.g., OVERVALUED + HOLD, UNDERVALUED + HOLD), you MUST include a "conflict_rationale" field (1-2 sentences) explaining what offsets the valuation signal and stating the relevant time horizon.
 
 Based on this data, provide your analysis as a JSON object with this exact structure:
 {
   "verdict": "UNDERVALUED" | "OVERVALUED" | "FAIR_VALUE",
   "confidence": "HIGH" | "MEDIUM" | "LOW",
   "action": "STRONG_BUY" | "BUY" | "HOLD" | "SELL" | "STRONG_SELL",
+  "conflict_rationale": "REQUIRED if verdict and action conflict (e.g. OVERVALUED+HOLD). Explain what offsets valuation and state time horizon. Omit if no conflict.",
   "summary": "2-3 sentence overall assessment of this REIT, focusing on dividend sustainability and value",
   "valuation_analysis": "${valuationInstruction}",
   "risks": ["risk1", "risk2", "risk3"],
@@ -235,13 +262,22 @@ PRICE TARGET RULE: You MUST use the server-calculated price targets above for lo
 ` : ''}
 ---
 
-Determine an action recommendation based on: STRONG_BUY = trading significantly below fair value with strong earnings growth; BUY = below fair value with positive catalysts; HOLD = near fair value, balanced outlook; SELL = above fair value with headwinds; STRONG_SELL = significantly overvalued with deteriorating fundamentals.
+## Action Decision Rules (MUST follow — use the Current Price vs Fair Value Ratio above)
+- ratio > 1.3 AND no strong forward EPS growth or clear recovery catalyst → SELL or STRONG_SELL
+- ratio > 1.3 AND strong forward EPS growth or clear recovery thesis → HOLD is allowed, but you MUST explain what offsets the overvaluation and state the time horizon
+- ratio 1.1–1.3 → HOLD (moderately stretched, balanced outlook)
+- ratio 0.9–1.1 → HOLD or BUY depending on catalysts (fair value zone)
+- ratio < 0.9 → BUY or STRONG_BUY (undervalued)
+- ratio < 0.7 → STRONG_BUY if fundamentals support it
+
+CONFLICT RULE: If your verdict and action appear contradictory (e.g., OVERVALUED + HOLD, UNDERVALUED + HOLD), you MUST include a "conflict_rationale" field (1-2 sentences) explaining what offsets the valuation signal and stating the relevant time horizon (e.g., "Short-term overvalued at 1.4x fair value, but FY2026 EPS recovery of 25% supports holding for 12+ months").
 
 Based on this data, provide your analysis as a JSON object with this exact structure:
 {
   "verdict": "UNDERVALUED" | "OVERVALUED" | "FAIR_VALUE",
   "confidence": "HIGH" | "MEDIUM" | "LOW",
   "action": "STRONG_BUY" | "BUY" | "HOLD" | "SELL" | "STRONG_SELL",
+  "conflict_rationale": "REQUIRED if verdict and action conflict (e.g. OVERVALUED+HOLD). Explain what offsets valuation and state time horizon. Omit if no conflict.",
   "summary": "2-3 sentence overall assessment",
   "valuation_analysis": "Paragraph comparing current price to historical P/E and fair value estimates",
   "risks": ["risk1", "risk2", "risk3"],
@@ -414,18 +450,24 @@ router.post('/', async (req, res) => {
     let prompt;
     let etfType = null;
     if (assetType === 'etf') {
+      let macroDataResult = null;
       try {
-        const fundData = await getETFFundData(upperSymbol);
+        const [fundData, macroRaw] = await Promise.all([
+          getETFFundData(upperSymbol),
+          getMacroData(),
+        ]);
         stock.fundProfile = fundData.fundProfile;
         stock.topHoldings = fundData.topHoldings;
+        macroDataResult = macroRaw;
       } catch (err) {
-        console.warn(`Could not fetch fund data for ${upperSymbol}:`, err.message);
+        console.warn(`Could not fetch fund/macro data for ${upperSymbol}:`, err.message);
       }
 
       const dividendInfo = data.dividendEvents?.length
         ? calculateDividendGrade(data.dividendEvents)
         : null;
       const sd = data.summaryDetail || {};
+      const ks = data.defaultKeyStatistics || {};
       etfType = classifyETF({
         ticker: upperSymbol,
         name: data.price?.shortName || data.price?.longName || '',
@@ -433,9 +475,25 @@ router.post('/', async (req, res) => {
         peRatio: sd.trailingPE ?? null,
         streak: dividendInfo?.consecutiveIncreaseStreak ?? 0,
       });
-      prompt = buildETFAnalysisPrompt(etfType, stock, news, dividendInfo, peerComparison);
+
+      let macroScore = null;
+      if (macroDataResult) {
+        const sp = data.summaryProfile || {};
+        macroScore = computeMacroScore({
+          etfType,
+          trailingPE: sd.trailingPE ?? null,
+          forwardPE: ks.forwardPE ?? sd.forwardPE ?? null,
+          dividendYield: sd.dividendYield ?? sd.yield ?? null,
+          treasury10Y: macroDataResult.treasury10Y,
+          treasury50dma: macroDataResult.treasury10Y_50dma,
+          forwardGrowth: null, // earningsTrend not available for ETFs
+          sectorCategory: sp.category || sp.sector || null,
+        });
+      }
+
+      prompt = buildETFAnalysisPrompt(etfType, stock, news, dividendInfo, peerComparison, macroScore);
     } else if (assetType === 'reit') {
-      prompt = buildREITPrompt(stock, news, reitMetrics, peerComparison);
+      prompt = buildREITPrompt(stock, news, reitMetrics, peerComparison, chart);
     } else if (assetType === 'bank') {
       prompt = buildBankPrompt(stock, chart, news, priceTargets, peerComparison);
     } else {

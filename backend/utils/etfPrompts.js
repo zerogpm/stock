@@ -1,4 +1,5 @@
 import { buildPeerPromptSection } from './peerPrompt.js';
+import { formatMacroBlock } from './macroScore.js';
 
 export const KNOWN_EXPENSE_RATIOS = {
   VOO: 0.03, SPY: 0.09, IVV: 0.03, VTI: 0.03, SPLG: 0.02,
@@ -585,11 +586,15 @@ const PROMPT_BUILDERS = {
   THEMATIC: buildThematicPrompt,
 };
 
-export function buildETFAnalysisPrompt(etfType, stock, news, dividendInfo, peerComparison) {
+export function buildETFAnalysisPrompt(etfType, stock, news, dividendInfo, peerComparison, macroData) {
   const builder = PROMPT_BUILDERS[etfType] || buildBroadMarketPrompt;
   let prompt = builder(stock, news, dividendInfo);
   if (peerComparison) {
     prompt = prompt.replace(/\n---\n/, `\n${buildPeerPromptSection(peerComparison)}\n---\n`);
+  }
+  if (macroData) {
+    const macroBlock = formatMacroBlock(macroData, etfType);
+    prompt = prompt.replace(/\n---\n/, `\n${macroBlock}\n---\n`);
   }
   return prompt;
 }

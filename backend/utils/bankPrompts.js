@@ -100,13 +100,22 @@ ${peerComparison ? buildPeerPromptSection(peerComparison) : ''}
    - Capital ratios and regulatory environment
 4. **Do NOT compare** valuation multiples to S&P 500 levels — banking multiples are structurally lower.
 
-Determine an action recommendation: STRONG_BUY = significantly below fair value with strong ROE and dividend sustainability; BUY = below fair value with positive credit outlook; HOLD = near fair value, balanced outlook; SELL = above fair value with credit headwinds; STRONG_SELL = significantly overvalued with deteriorating asset quality.
+## Action Decision Rules (MUST follow — use the Current Price vs Fair Value ratio from the Computed Fair Value section above)
+- price > 1.3x blended fair value AND no strong ROE/credit growth catalyst → SELL or STRONG_SELL
+- price > 1.3x blended fair value AND strong ROE improvement or credit cycle recovery → HOLD is allowed, but you MUST explain what offsets the overvaluation and state the time horizon
+- price 1.1–1.3x blended fair value → HOLD (moderately stretched)
+- price 0.9–1.1x blended fair value → HOLD or BUY depending on credit outlook (fair value zone)
+- price < 0.9x blended fair value → BUY or STRONG_BUY (undervalued)
+- price < 0.7x blended fair value → STRONG_BUY if asset quality supports it
+
+CONFLICT RULE: If your verdict and action appear contradictory (e.g., OVERVALUED + HOLD, UNDERVALUED + HOLD), you MUST include a "conflict_rationale" field (1-2 sentences) explaining what offsets the valuation signal and stating the relevant time horizon.
 
 Based on this data, provide your analysis as a JSON object with this exact structure:
 {
   "verdict": "UNDERVALUED" | "OVERVALUED" | "FAIR_VALUE",
   "confidence": "HIGH" | "MEDIUM" | "LOW",
   "action": "STRONG_BUY" | "BUY" | "HOLD" | "SELL" | "STRONG_SELL",
+  "conflict_rationale": "REQUIRED if verdict and action conflict (e.g. OVERVALUED+HOLD). Explain what offsets valuation and state time horizon. Omit if no conflict.",
   "summary": "2-3 sentence overall assessment focusing on banking-specific valuation (P/E + P/B + DDM models), dividend sustainability, and credit outlook",
   "valuation_analysis": "Paragraph showing fair value calculation steps using all three models (P/E, P/B, DDM), comparing to banking-specific ranges, and assessing dividend sustainability based on ROE and payout ratio",
   "risks": ["banking-specific risk1", "risk2", "risk3"],

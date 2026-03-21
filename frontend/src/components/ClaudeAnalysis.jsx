@@ -212,6 +212,12 @@ export default function ClaudeAnalysis({ symbol, assetType }) {
               </p>
             )}
 
+            {analysis.conflict_rationale && (
+              <p className="text-sm italic mb-4 rounded-md border-l-4 border-yellow-500 bg-yellow-50/50 dark:bg-yellow-900/20 px-3 py-2 text-yellow-800 dark:text-yellow-300">
+                {analysis.conflict_rationale}
+              </p>
+            )}
+
             {fairValue && <FairValueBanner fairValue={fairValue} />}
 
             <p className="text-base text-muted-foreground leading-relaxed mb-5">
