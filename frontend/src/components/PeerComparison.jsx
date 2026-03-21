@@ -29,11 +29,130 @@ function getColor(value, median, lowerBetter, format) {
   return isBetter ? 'text-green-500' : 'text-red-500';
 }
 
-export default function PeerComparison({ data }) {
+// --- Takeaway generation ---
+
+const TAKEAWAY_DEFS = [
+  {
+    id: 'valuation',
+    // Prefer forwardPE, fall back to trailingPE
+    getValues: (target, medians) => {
+      const fwd = target.forwardPE != null && medians.forwardPE != null
+        ? { val: target.forwardPE, med: medians.forwardPE }
+        : null;
+      const ttm = target.trailingPE != null && medians.trailingPE != null
+        ? { val: target.trailingPE, med: medians.trailingPE }
+        : null;
+      return fwd || ttm;
+    },
+    lowerBetter: true,
+    higherWord: 'more expensive',
+    lowerWord: 'cheaper',
+    neutralWord: 'priced similarly to',
+    context: 'similar companies',
+    skipFor: ['reit'],
+  },
+  {
+    id: 'growth',
+    getValues: (target, medians) =>
+      target.revenueGrowth != null && medians.revenueGrowth != null
+        ? { val: target.revenueGrowth, med: medians.revenueGrowth }
+        : null,
+    lowerBetter: false,
+    higherWord: 'growing faster',
+    lowerWord: 'growing slower',
+    neutralWord: 'growing at a similar pace to',
+    context: 'peers',
+    skipFor: [],
+  },
+  {
+    id: 'dividend',
+    getValues: (target, medians) =>
+      target.dividendYield != null && medians.dividendYield != null
+        ? { val: target.dividendYield, med: medians.dividendYield }
+        : null,
+    lowerBetter: false,
+    higherWord: 'pays more dividends',
+    lowerWord: 'pays less in dividends',
+    neutralWord: 'pays about the same dividends as',
+    context: 'peers',
+    skipFor: [],
+  },
+  {
+    id: 'debt',
+    getValues: (target, medians) =>
+      target.debtToEquity != null && medians.debtToEquity != null
+        ? { val: target.debtToEquity, med: medians.debtToEquity }
+        : null,
+    lowerBetter: true,
+    higherWord: 'carries more debt',
+    lowerWord: 'carries less debt',
+    neutralWord: 'has similar debt levels to',
+    context: 'peers',
+    skipFor: [],
+  },
+];
+
+function getMagnitude(pctDiff) {
+  const abs = Math.abs(pctDiff);
+  if (abs < 5) return 'neutral';
+  if (abs < 20) return 'somewhat';
+  return 'significantly';
+}
+
+function generateTakeaways(target, medians, assetType) {
+  const takeaways = [];
+
+  for (const def of TAKEAWAY_DEFS) {
+    if (def.skipFor.includes(assetType)) continue;
+
+    const values = def.getValues(target, medians);
+    if (!values) continue;
+
+    const { val, med } = values;
+    if (med === 0) continue;
+
+    const pctDiff = ((val - med) / Math.abs(med)) * 100;
+    const magnitude = getMagnitude(pctDiff);
+
+    if (magnitude === 'neutral') {
+      takeaways.push({
+        text: def.neutralWord,
+        context: def.context,
+        color: 'text-muted-foreground',
+        magnitude: '',
+      });
+    } else {
+      const isBetter = def.lowerBetter ? pctDiff < 0 : pctDiff > 0;
+      const word = pctDiff > 0 ? def.higherWord : def.lowerWord;
+      // For "carries less debt", lower is good. For "more expensive", higher is bad.
+      const color = isBetter ? 'text-green-500' : 'text-red-500';
+      // Special: "carries more debt" gets a caution suffix, "less debt" gets a positive suffix
+      let suffix = '';
+      if (def.id === 'debt') {
+        suffix = isBetter ? ' — financially conservative' : ' — higher financial risk';
+      } else if (def.id === 'valuation' && !isBetter) {
+        suffix = ' — you\'re paying a premium';
+      }
+
+      takeaways.push({
+        text: word,
+        context: def.context,
+        color,
+        magnitude: magnitude === 'significantly' ? 'Significantly ' : '',
+        suffix,
+      });
+    }
+  }
+
+  return takeaways;
+}
+
+export default function PeerComparison({ data, assetType }) {
   if (!data || !data.peers?.length) return null;
 
   const { target, peers, medians, source } = data;
   const allRows = [target, ...peers];
+  const takeaways = generateTakeaways(target, medians, assetType || 'stock');
 
   return (
     <div className="mb-5">
@@ -105,8 +224,23 @@ export default function PeerComparison({ data }) {
           </tbody>
         </table>
       </div>
+      {takeaways.length > 0 && (
+        <ul className="mt-3 space-y-1.5">
+          {takeaways.map((t, i) => (
+            <li key={i} className="flex items-start gap-1.5 text-sm text-muted-foreground">
+              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
+              <span>
+                {t.magnitude}
+                <span className={`font-semibold ${t.color}`}>{t.text}</span>
+                {' '}than {t.context}
+                {t.suffix}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
       <p className="text-xs text-muted-foreground/60 mt-2">
-        {source === 'profile' ? 'Peers from curated profile' : 'Peers discovered via Yahoo Finance'}
+        {source === 'profile' ? 'Peers from curated profile' : source === 'etf-classifier' ? 'Peers from same ETF category' : source === 'claude' ? 'Peers suggested by AI (same industry)' : 'Peers discovered via Yahoo Finance'}
       </p>
     </div>
   );

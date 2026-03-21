@@ -54,6 +54,7 @@ function App() {
   const visibleSections = useMemo(() => {
     if (!data) return [];
     const sections = [
+      { id: 'section-search', label: 'Search' },
       { id: 'section-chart', label: 'Chart' },
       { id: 'section-metrics', label: 'Metrics' },
     ];
@@ -68,6 +69,9 @@ function App() {
 
   const handleNavigate = useCallback((sectionId) => {
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (sectionId === 'section-search') {
+      setTimeout(() => document.getElementById('search-input')?.focus(), 400);
+    }
   }, []);
 
   useEffect(() => {
@@ -178,7 +182,9 @@ function App() {
                   </h1>
                 </div>
               </header>
-              <SearchBar onSearch={handleSearch} />
+              <div id="section-search">
+                <SearchBar onSearch={handleSearch} />
+              </div>
               <StockHeader
                 data={data.stock}
                 chartData={data.chart}

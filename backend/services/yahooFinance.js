@@ -105,7 +105,7 @@ export async function getRecommendedPeers(symbol) {
   try {
     const result = await yahooFinance.recommendationsBySymbol(symbol);
     return (result.recommendedSymbols || [])
-      .slice(0, 5)
+      .slice(0, 10)
       .map((r) => ({ symbol: r.symbol, score: r.score }));
   } catch {
     return [];
@@ -119,12 +119,15 @@ export async function getQuoteBatch(symbols) {
 
 export async function getFinancialData(symbol) {
   const result = await yahooFinance.quoteSummary(symbol, {
-    modules: ['financialData'],
+    modules: ['financialData', 'summaryProfile'],
   });
   const fd = result.financialData || {};
+  const sp = result.summaryProfile || {};
   return {
     revenueGrowth: fd.revenueGrowth ?? null,
     profitMargins: fd.profitMargins ?? null,
     debtToEquity: fd.debtToEquity ?? null,
+    sector: sp.sector ?? null,
+    industry: sp.industry ?? null,
   };
 }

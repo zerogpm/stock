@@ -83,6 +83,7 @@ export default function SearchBar({ onSearch }) {
     >
       <div className="relative flex-1">
         <Input
+          id="search-input"
           type="text"
           value={input}
           onChange={handleChange}

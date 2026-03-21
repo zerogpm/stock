@@ -234,6 +234,8 @@ export default function ClaudeAnalysis({ symbol, assetType }) {
                   </Section>
                 ))}
 
+                {peerComparison && <PeerComparison data={peerComparison} assetType={assetType} />}
+
                 <div className="grid grid-cols-2 gap-5 mb-5">
                   <Section title="Risk Flags">
                     <ul className="pl-5 space-y-1">
@@ -276,6 +278,8 @@ export default function ClaudeAnalysis({ symbol, assetType }) {
                   </p>
                 </Section>
 
+                {peerComparison && <PeerComparison data={peerComparison} assetType={assetType} />}
+
                 <div className="grid grid-cols-2 gap-5 mb-5">
                   <Section title="Risk Flags">
                     <ul className="pl-5 space-y-1">
@@ -307,7 +311,7 @@ export default function ClaudeAnalysis({ symbol, assetType }) {
                   </p>
                 </Section>
 
-                {peerComparison && <PeerComparison data={peerComparison} />}
+                {peerComparison && <PeerComparison data={peerComparison} assetType={assetType} />}
 
                 <div className="grid grid-cols-2 gap-5 mb-5">
                   <Section title="Risk Flags">
@@ -604,63 +608,110 @@ function TargetBreakdown({ computedTargets }) {
     return <BankTargetBreakdown computedTargets={computedTargets} />;
   }
 
+  const yr = computedTargets.scenarios['12m'];
+  const bear = yr?.bear;
+  const base = yr?.base;
+  const bull = yr?.bull;
+
   return (
-    <details className="mb-5">
-      <summary className="text-sm font-bold text-foreground uppercase tracking-wide cursor-pointer hover:text-violet-600 transition-colors">
-        Calculation Breakdown
-      </summary>
-      <div className="mt-3">
-        <div className="flex gap-2 mb-3">
-          {Object.keys(HORIZON_LABELS).map((key) => (
-            <button
-              key={key}
-              onClick={() => setActive(key)}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                active === key
-                  ? "bg-violet-600 text-white"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              {HORIZON_LABELS[key]}
-            </button>
-          ))}
+    <div className="mb-5">
+      {bear && base && bull && (
+        <ul className="space-y-1.5 mb-3 text-sm text-muted-foreground">
+          <li className="flex items-start gap-1.5">
+            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" />
+            <span>If things go <span className="font-semibold text-red-500">badly</span>, the stock could drop to <span className="font-semibold text-foreground">${bear.targetPrice}</span> in 12 months</span>
+          </li>
+          <li className="flex items-start gap-1.5">
+            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-yellow-500 shrink-0" />
+            <span>Most <span className="font-semibold text-yellow-500">likely</span>, it stays around <span className="font-semibold text-foreground">${base.targetPrice}</span></span>
+          </li>
+          <li className="flex items-start gap-1.5">
+            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" />
+            <span>If things go <span className="font-semibold text-green-500">well</span>, it could reach <span className="font-semibold text-foreground">${bull.targetPrice}</span></span>
+          </li>
+        </ul>
+      )}
+      <details>
+        <summary className="text-sm font-bold text-foreground uppercase tracking-wide cursor-pointer hover:text-violet-600 transition-colors">
+          Calculation Breakdown
+        </summary>
+        <div className="mt-3">
+          <div className="flex gap-2 mb-3">
+            {Object.keys(HORIZON_LABELS).map((key) => (
+              <button
+                key={key}
+                onClick={() => setActive(key)}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                  active === key
+                    ? "bg-violet-600 text-white"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                {HORIZON_LABELS[key]}
+              </button>
+            ))}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Scenario</th>
+                  <th className="text-right py-2 px-4 text-muted-foreground font-medium">Projected EPS</th>
+                  <th className="text-right py-2 px-4 text-muted-foreground font-medium">Growth</th>
+                  <th className="text-right py-2 px-4 text-muted-foreground font-medium">P/E Multiple</th>
+                  <th className="text-right py-2 pl-4 text-muted-foreground font-medium">Target Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {['bear', 'base', 'bull'].map((scenario) => {
+                  const data = computedTargets.scenarios[active]?.[scenario];
+                  if (!data) return null;
+                  const colors = { bear: 'text-red-500', base: 'text-yellow-500', bull: 'text-green-500' };
+                  return (
+                    <tr key={scenario} className="border-b border-border/50">
+                      <td className={`py-2 pr-4 font-medium capitalize ${colors[scenario]}`}>{scenario}</td>
+                      <td className="text-right py-2 px-4 text-foreground">${data.eps}</td>
+                      <td className="text-right py-2 px-4 text-foreground">{data.growthRate}%</td>
+                      <td className="text-right py-2 px-4 text-foreground">{data.peMultiple}x</td>
+                      <td className="text-right py-2 pl-4 text-foreground font-semibold">${data.targetPrice}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {computedTargets.inputs?.currentPrice && (() => {
+            const price = computedTargets.inputs.currentPrice;
+            const scenarios = computedTargets.scenarios[active];
+            if (!scenarios) return null;
+            const items = ['bear', 'base', 'bull'].map((key) => {
+              const tp = scenarios[key]?.targetPrice;
+              if (tp == null) return null;
+              const pct = ((tp - price) / price * 100).toFixed(1);
+              const isUp = pct >= 0;
+              return { key, tp, pct: isUp ? `+${pct}` : pct, isUp };
+            }).filter(Boolean);
+            if (items.length === 0) return null;
+            const colors = { bear: 'text-red-500', base: 'text-yellow-500', bull: 'text-green-500' };
+            return (
+              <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-sm">
+                {items.map((item) => (
+                  <span key={item.key} className="text-muted-foreground">
+                    <span className={`font-semibold capitalize ${colors[item.key]}`}>{item.key}</span>
+                    {': '}
+                    <span className="font-semibold text-foreground">${item.tp}</span>
+                    {' '}
+                    <span className={item.isUp ? 'text-green-500' : 'text-red-500'}>
+                      ({item.isUp ? '↑' : '↓'} {item.pct}% from today)
+                    </span>
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Scenario</th>
-                <th className="text-right py-2 px-4 text-muted-foreground font-medium">Projected EPS</th>
-                <th className="text-right py-2 px-4 text-muted-foreground font-medium">Growth</th>
-                <th className="text-right py-2 px-4 text-muted-foreground font-medium">P/E Multiple</th>
-                <th className="text-right py-2 pl-4 text-muted-foreground font-medium">Target Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {['bear', 'base', 'bull'].map((scenario) => {
-                const data = computedTargets.scenarios[active]?.[scenario];
-                if (!data) return null;
-                const colors = { bear: 'text-red-500', base: 'text-yellow-500', bull: 'text-green-500' };
-                return (
-                  <tr key={scenario} className="border-b border-border/50">
-                    <td className={`py-2 pr-4 font-medium capitalize ${colors[scenario]}`}>{scenario}</td>
-                    <td className="text-right py-2 px-4 text-foreground">${data.eps}</td>
-                    <td className="text-right py-2 px-4 text-foreground">{data.growthRate}%</td>
-                    <td className="text-right py-2 px-4 text-foreground">{data.peMultiple}x</td>
-                    <td className="text-right py-2 pl-4 text-foreground font-semibold">${data.targetPrice}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {computedTargets.inputs && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Base EPS: ${computedTargets.inputs.forwardEPS ?? computedTargets.inputs.currentEPS} ({computedTargets.inputs.forwardEPS ? 'forward' : 'trailing'}) | Historical Avg P/E: {computedTargets.inputs.historicalAvgPE}x | EPS CAGR: {computedTargets.inputs.epsGrowthRate}%
-          </p>
-        )}
-      </div>
-    </details>
+      </details>
+    </div>
   );
 }
 

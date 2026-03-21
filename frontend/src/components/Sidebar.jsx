@@ -1,6 +1,7 @@
 import {
   PanelLeftClose,
   PanelLeftOpen,
+  Search,
   LineChart,
   BarChart3,
   DollarSign,
@@ -16,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 
 const SECTION_ICONS = {
+  'section-search': Search,
   'section-chart': LineChart,
   'section-metrics': BarChart3,
   'section-dividends': DollarSign,

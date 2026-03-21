@@ -1,4 +1,4 @@
-const KNOWN_TICKERS = {
+export const KNOWN_TICKERS = {
   BROAD_MARKET: new Set([
     'VOO', 'VTI', 'SPY', 'IVV', 'SPLG', 'SPTM', 'ITOT', 'SCHB', 'SCHX',
     'VV', 'RSP', 'IWB', 'VONE', 'SPHQ', 'QUAL', 'IWV', 'DFAC', 'FNILX',

@@ -3,6 +3,17 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PIDS_FILE="$SCRIPT_DIR/.pids"
 
+# Stop DynamoDB Local
+OS_NAME="$(uname -s)"
+if [[ "$OS_NAME" == MINGW* || "$OS_NAME" == MSYS* || "$OS_NAME" == CYGWIN* || "$OS_NAME" == Windows_NT ]]; then
+  COMPOSE_FILE="backend/local/docker-compose.windows.yml"
+else
+  COMPOSE_FILE="backend/local/docker-compose.yml"
+fi
+
+echo "Stopping DynamoDB Local..."
+docker compose -f "$SCRIPT_DIR/$COMPOSE_FILE" down 2>/dev/null || true
+
 # Kill saved PIDs and their child processes
 if [ -f "$PIDS_FILE" ]; then
   while read -r PID; do
